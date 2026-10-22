@@ -20,12 +20,6 @@ export type Timing = {
     fade: number;
 };
 export declare const DEFAULT_TIMING: Timing;
-export type Colors = {
-    background: string;
-    text: string;
-    accent: string;
-};
-export declare const DEFAULT_COLORS: Colors;
 export type Layout = {
     fontSize: number;
     A: Record<TokenId, Point>;
@@ -35,6 +29,7 @@ export type Layout = {
     oHeight: number;
     oOffset: number;
     lWidth: number;
+    label: Point;
 };
 export type GlyphFrame = {
     x: number;
@@ -59,6 +54,11 @@ export type Frame = {
     glyphs: Record<TokenId, GlyphFrame>;
     wraps: Record<DevId, GlyphFrame>;
     ring: RingFrame;
+    label: {
+        opacity: number;
+        blur: number;
+        dy: number;
+    };
     mask: {
         left: number;
         right: number;
@@ -66,6 +66,14 @@ export type Frame = {
     };
 };
 export declare const toRgb: (hex: string) => Rgb;
+export declare const mutedText: (text: string, background: string) => string;
+export type Colors = {
+    background: string;
+    text: string;
+    accent: string;
+    label: string;
+};
+export declare const DEFAULT_COLORS: Colors;
 export declare const duration: (timing: Timing) => number;
 export declare function progress(elapsed: number, timing: Timing, reducedMotion?: boolean): {
     i: number;

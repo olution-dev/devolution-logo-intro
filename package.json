@@ -1,6 +1,6 @@
 {
   "name": "@devolution/logo-intro",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "The Devolution logo intro animation: shared core and web renderer.",
   "type": "module",
   "main": "./dist/index.js",

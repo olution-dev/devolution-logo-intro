@@ -1,5 +1,6 @@
 import { type Colors, type Timing } from "./core.js";
 export type LogoIntroOptions = {
+    label?: string;
     colors?: Partial<Colors>;
     timing?: Partial<Timing>;
     fontFamily?: string;

@@ -30,7 +30,6 @@ export const ARC_START = 135;
 export const ARC = 275;
 const STROKE_RATIO = 8 / 88;
 export const DEFAULT_TIMING = { intro: 1200, hold: 400, morph: 2000, rest: 600, fade: 700 };
-export const DEFAULT_COLORS = { background: "#0a0a0a", text: "#f3f1ea", accent: "#f6da1e" };
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const seg = (t, a, b) => clamp((t - a) / (b - a));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -47,7 +46,19 @@ export const toRgb = (hex) => {
         throw new Error(`Expected a #rgb or #rrggbb colour, got "${hex}"`);
     return [0, 2, 4].map((n) => parseInt(full.slice(n, n + 2), 16));
 };
+const toHex = (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 const mix = (a, b, t) => `rgb(${a.map((v, n) => Math.round(lerp(v, b[n], t))).join(",")})`;
+// The label's default colour: the text at 65% over the background.
+export const mutedText = (text, background) => {
+    const [t, b] = [toRgb(text), toRgb(background)];
+    return toHex(b.map((v, n) => Math.round(lerp(v, t[n], 0.65))));
+};
+export const DEFAULT_COLORS = {
+    background: "#0a0a0a",
+    text: "#f3f1ea",
+    accent: "#f6da1e",
+    label: mutedText("#f3f1ea", "#0a0a0a"),
+};
 export const duration = (timing) => timing.intro + timing.hold + timing.morph + timing.rest;
 /*
  * Progress at `elapsed` ms: i = intro (letters appear), m = morph, both 0..1.
@@ -60,6 +71,11 @@ export function progress(elapsed, timing, reducedMotion = false) {
         return { i: 1, m: m < 0.5 ? 0 : 1, opacity: Math.abs(1 - 2 * m) };
     return { i: seg(elapsed, 0, intro), m, opacity: 1 };
 }
+// Letters fade up one after another, in reading order.
+const appear = (i, idx, fontSize) => {
+    const q = ease.out(seg(i, 0.3 + idx * 0.035, 0.65 + idx * 0.035));
+    return { opacity: q, dy: (1 - q) * fontSize * 0.25, blur: (1 - q) * 6 };
+};
 export function frame(layout, i, m, colors) {
     const { A, B, fontSize: f } = layout;
     const lap = A.ring.x - B.ring.x;
@@ -74,15 +90,14 @@ export function frame(layout, i, m, colors) {
     TOKENS.forEach((id, idx) => {
         if (id === "ring")
             return;
-        // letters fade up one after another, in reading order
-        const q = ease.out(seg(i, 0.3 + idx * 0.035, 0.65 + idx * 0.035));
+        const a = appear(i, idx, f);
         const x = A[id].x - shift;
         const dev = isBold(id);
         glyphs[id] = {
             x,
-            y: A[id].y + (1 - q) * f * 0.25,
-            opacity: dev && slide >= 1 ? 0 : q,
-            blur: (1 - q) * 6,
+            y: A[id].y + a.dy,
+            opacity: dev && slide >= 1 ? 0 : a.opacity,
+            blur: a.blur,
             skew,
         };
         if (dev) {
@@ -106,10 +121,12 @@ export function frame(layout, i, m, colors) {
     const hw = strokeWidth * 1.25 * Math.max(headScale, 0);
     const hl = strokeWidth * 1.75 * Math.max(headScale, 0);
     glyphs.ring = { x, y: A.ring.y, opacity: handover, blur: 0, skew: 0 };
+    const credit = appear(i, 0, f);
     return {
         glyphs,
         wraps,
         mask,
+        label: { opacity: credit.opacity, blur: credit.blur, dy: credit.dy * 0.5 },
         ring: {
             x,
             y: A.ring.y + layout.oOffset,

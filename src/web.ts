@@ -17,6 +17,7 @@ import {
   duration,
   frame,
   isBold,
+  mutedText,
   progress,
   toRgb,
   type Colors,
@@ -28,6 +29,9 @@ import {
 } from "./core.js";
 
 export type LogoIntroOptions = {
+  // small text above the word, e.g. "A product by"
+  label?: string;
+  // `label` defaults to a muted `text`
   colors?: Partial<Colors>;
   timing?: Partial<Timing>;
   fontFamily?: string;
@@ -125,6 +129,8 @@ export function playLogoIntro(container: HTMLElement, options: LogoIntroOptions 
     // hidden until the first frame is drawn
     const layer = el("div", { position: "absolute", inset: "0", opacity: "0" });
     container.append(rows, layer);
+    // outside the layer, whose mask would clip its left edge; hidden until drawn too
+    const label = options.label ? container.appendChild(labelNode(options.label)) : undefined;
 
     const svg = document.createElementNS(SVG, "svg");
     Object.assign(svg.style, { position: "absolute", top: "0", left: "0", overflow: "visible", willChange: "transform" });
@@ -151,6 +157,23 @@ export function playLogoIntro(container: HTMLElement, options: LogoIntroOptions 
       node.textContent = CHARS[id];
       return node;
     };
+
+    function labelNode(textContent: string) {
+      const node = el("span", {
+        position: "absolute",
+        top: "0",
+        left: "0",
+        fontFamily,
+        fontWeight: "300",
+        letterSpacing: "0.2em",
+        whiteSpace: "nowrap",
+        color: options.colors?.label ?? mutedText(colors.text, colors.background),
+        opacity: "0",
+        willChange: "transform",
+      });
+      node.textContent = textContent;
+      return node;
+    }
 
     const slotA = {} as Record<TokenId, HTMLElement>;
     const slotB = {} as Record<TokenId, HTMLElement>;
@@ -195,16 +218,21 @@ export function playLogoIntro(container: HTMLElement, options: LogoIntroOptions 
 
       const f = parseFloat(getComputedStyle(slotA.d).fontSize);
       const o = ink(300, f, "o");
+      const l = ink(300, f, "l");
       const r = rowA.getBoundingClientRect();
+      const A = centres(slotA);
+      if (label) label.style.fontSize = `${Math.max(11, f * 0.12)}px`;
       layout = {
         fontSize: f,
-        A: centres(slotA),
+        A,
         B: centres(slotB),
         left: r.left - s.left,
         right: r.right - s.left,
         oHeight: o.h,
         oOffset: o.off,
-        lWidth: ink(300, f, "l").w,
+        lWidth: l.w,
+        // left-aligned with the word, just above the tallest letter ("l")
+        label: { x: r.left - s.left, y: A.l.y + l.off - l.h / 2 - f * 0.2 },
       };
     }
 
@@ -225,6 +253,12 @@ export function playLogoIntro(container: HTMLElement, options: LogoIntroOptions 
 
       for (const id of TOKENS) place(glyphs[id], fr.glyphs[id]);
       for (const id of DEV) place(wraps[id], fr.wraps[id]);
+
+      if (label) {
+        label.style.transform = `translate(${layout.label.x}px, ${layout.label.y + fr.label.dy}px) translateY(-100%)`;
+        label.style.opacity = String(fr.label.opacity);
+        label.style.filter = fr.label.blur > 0.05 ? `blur(${fr.label.blur}px)` : "none";
+      }
 
       const ring = fr.ring;
       svg.setAttribute("viewBox", `${-ring.box / 2} ${-ring.box / 2} ${ring.box} ${ring.box}`);

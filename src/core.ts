@@ -44,15 +44,13 @@ const STROKE_RATIO = 8 / 88;
 export type Timing = { intro: number; hold: number; morph: number; rest: number; fade: number };
 export const DEFAULT_TIMING: Timing = { intro: 1200, hold: 400, morph: 2000, rest: 600, fade: 700 };
 
-export type Colors = { background: string; text: string; accent: string };
-export const DEFAULT_COLORS: Colors = { background: "#0a0a0a", text: "#f3f1ea", accent: "#f6da1e" };
-
 /*
  * Measured by the renderer, in its own coordinates:
  * A, B      centre of every glyph box in the start and end states
  * left/right edges of the start-state word
  * oHeight   ink height of the light "o"; oOffset its ink centre below the box centre
  * lWidth    ink width of the light "l", the thin stroke the arrow closes into
+ * label     bottom-left anchor of the optional label above the word
  */
 export type Layout = {
   fontSize: number;
@@ -63,6 +61,7 @@ export type Layout = {
   oHeight: number;
   oOffset: number;
   lWidth: number;
+  label: Point;
 };
 
 export type GlyphFrame = { x: number; y: number; opacity: number; blur: number; skew: number };
@@ -87,6 +86,8 @@ export type Frame = {
   // second copy of "dev" that comes back in after the dot
   wraps: Record<DevId, GlyphFrame>;
   ring: RingFrame;
+  // optional label: arrives with the first letter, then holds still
+  label: { opacity: number; blur: number; dy: number };
   // horizontal window the word scrolls through; feather > 0 only while moving
   mask: { left: number; right: number; feather: number };
 };
@@ -108,7 +109,22 @@ export const toRgb = (hex: string): Rgb => {
   return [0, 2, 4].map((n) => parseInt(full.slice(n, n + 2), 16)) as Rgb;
 };
 
+const toHex = (rgb: Rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 const mix = (a: Rgb, b: Rgb, t: number) => `rgb(${a.map((v, n) => Math.round(lerp(v, b[n], t))).join(",")})`;
+
+// The label's default colour: the text at 65% over the background.
+export const mutedText = (text: string, background: string) => {
+  const [t, b] = [toRgb(text), toRgb(background)];
+  return toHex(b.map((v, n) => Math.round(lerp(v, t[n], 0.65))) as Rgb);
+};
+
+export type Colors = { background: string; text: string; accent: string; label: string };
+export const DEFAULT_COLORS: Colors = {
+  background: "#0a0a0a",
+  text: "#f3f1ea",
+  accent: "#f6da1e",
+  label: mutedText("#f3f1ea", "#0a0a0a"),
+};
 
 export const duration = (timing: Timing) => timing.intro + timing.hold + timing.morph + timing.rest;
 
@@ -122,6 +138,12 @@ export function progress(elapsed: number, timing: Timing, reducedMotion = false)
   if (reducedMotion) return { i: 1, m: m < 0.5 ? 0 : 1, opacity: Math.abs(1 - 2 * m) };
   return { i: seg(elapsed, 0, intro), m, opacity: 1 };
 }
+
+// Letters fade up one after another, in reading order.
+const appear = (i: number, idx: number, fontSize: number) => {
+  const q = ease.out(seg(i, 0.3 + idx * 0.035, 0.65 + idx * 0.035));
+  return { opacity: q, dy: (1 - q) * fontSize * 0.25, blur: (1 - q) * 6 };
+};
 
 export function frame(layout: Layout, i: number, m: number, colors: { text: Rgb; accent: Rgb }): Frame {
   const { A, B, fontSize: f } = layout;
@@ -138,15 +160,14 @@ export function frame(layout: Layout, i: number, m: number, colors: { text: Rgb;
   const wraps = {} as Record<DevId, GlyphFrame>;
   TOKENS.forEach((id, idx) => {
     if (id === "ring") return;
-    // letters fade up one after another, in reading order
-    const q = ease.out(seg(i, 0.3 + idx * 0.035, 0.65 + idx * 0.035));
+    const a = appear(i, idx, f);
     const x = A[id].x - shift;
     const dev = isBold(id);
     glyphs[id] = {
       x,
-      y: A[id].y + (1 - q) * f * 0.25,
-      opacity: dev && slide >= 1 ? 0 : q,
-      blur: (1 - q) * 6,
+      y: A[id].y + a.dy,
+      opacity: dev && slide >= 1 ? 0 : a.opacity,
+      blur: a.blur,
       skew,
     };
     if (dev) {
@@ -174,11 +195,14 @@ export function frame(layout: Layout, i: number, m: number, colors: { text: Rgb;
   const hl = strokeWidth * 1.75 * Math.max(headScale, 0);
 
   glyphs.ring = { x, y: A.ring.y, opacity: handover, blur: 0, skew: 0 };
+  const credit = appear(i, 0, f);
+
 
   return {
     glyphs,
     wraps,
     mask,
+    label: { opacity: credit.opacity, blur: credit.blur, dy: credit.dy * 0.5 },
     ring: {
       x,
       y: A.ring.y + layout.oOffset,

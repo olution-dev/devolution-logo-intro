@@ -8,7 +8,7 @@ The Devolution logo intro: "dev(arrow)lution." turns into "olution.dev".
 ## Install
 
 ```sh
-bun add github:olution-dev/devolution-logo-intro#v1.0.1
+bun add github:olution-dev/devolution-logo-intro#v1.1.0
 ```
 
 To update, bump the tag.
@@ -21,6 +21,7 @@ Your app loads the Quicksand font (weights 300 and 700). Pass any element that c
 import { playLogoIntro } from "@devolution/logo-intro";
 
 const intro = playLogoIntro(document.getElementById("intro")!, {
+  label: "A product by",
   colors: { background: "#0a0a0a", text: "#f3f1ea", accent: "#f6da1e" },
   timing: { morph: 1600 },
   onFinish: () => startApp(),
@@ -31,7 +32,9 @@ await intro.finished; // the container has faded out and been removed
 
 | Option          | Default                                          |
 | --------------- | ------------------------------------------------ |
+| `label`         | none: optional small text above the word, e.g. `"A product by"` |
 | `colors`        | `{ background: "#0a0a0a", text: "#f3f1ea", accent: "#f6da1e" }` (hex only) |
+| `colors.label`  | `text` at 65% over `background` (`#a1a09c` with the defaults) |
 | `timing` (ms)   | `{ intro: 1200, hold: 400, morph: 2000, rest: 600, fade: 700 }` |
 | `fontFamily`    | `"Quicksand", ui-rounded, system-ui, sans-serif` |
 | `fontSize`      | `clamp(44px, 11vw, 150px)`                       |

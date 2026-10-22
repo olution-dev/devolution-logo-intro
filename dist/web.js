@@ -5,7 +5,7 @@
  * positioned absolutely and moved by `frame()` from the core. The container
  * fades out when the intro ends and is then removed.
  */
-import { ARC_START, CHARS, DEFAULT_COLORS, DEFAULT_TIMING, DEV, ORDER_B, TOKENS, duration, frame, isBold, progress, toRgb, } from "./core.js";
+import { ARC_START, CHARS, DEFAULT_COLORS, DEFAULT_TIMING, DEV, ORDER_B, TOKENS, duration, frame, isBold, mutedText, progress, toRgb, } from "./core.js";
 const SVG = "http://www.w3.org/2000/svg";
 const SKIP_EVENTS = ["pointerdown", "keydown", "wheel", "touchmove"];
 export function playLogoIntro(container, options = {}) {
@@ -76,6 +76,8 @@ export function playLogoIntro(container, options = {}) {
         // hidden until the first frame is drawn
         const layer = el("div", { position: "absolute", inset: "0", opacity: "0" });
         container.append(rows, layer);
+        // outside the layer, whose mask would clip its left edge; hidden until drawn too
+        const label = options.label ? container.appendChild(labelNode(options.label)) : undefined;
         const svg = document.createElementNS(SVG, "svg");
         Object.assign(svg.style, { position: "absolute", top: "0", left: "0", overflow: "visible", willChange: "transform" });
         const circle = document.createElementNS(SVG, "circle");
@@ -100,6 +102,22 @@ export function playLogoIntro(container, options = {}) {
             node.textContent = CHARS[id];
             return node;
         };
+        function labelNode(textContent) {
+            const node = el("span", {
+                position: "absolute",
+                top: "0",
+                left: "0",
+                fontFamily,
+                fontWeight: "300",
+                letterSpacing: "0.2em",
+                whiteSpace: "nowrap",
+                color: options.colors?.label ?? mutedText(colors.text, colors.background),
+                opacity: "0",
+                willChange: "transform",
+            });
+            node.textContent = textContent;
+            return node;
+        }
         const slotA = {};
         const slotB = {};
         const glyphs = {};
@@ -139,16 +157,22 @@ export function playLogoIntro(container, options = {}) {
             };
             const f = parseFloat(getComputedStyle(slotA.d).fontSize);
             const o = ink(300, f, "o");
+            const l = ink(300, f, "l");
             const r = rowA.getBoundingClientRect();
+            const A = centres(slotA);
+            if (label)
+                label.style.fontSize = `${Math.max(11, f * 0.12)}px`;
             layout = {
                 fontSize: f,
-                A: centres(slotA),
+                A,
                 B: centres(slotB),
                 left: r.left - s.left,
                 right: r.right - s.left,
                 oHeight: o.h,
                 oOffset: o.off,
-                lWidth: ink(300, f, "l").w,
+                lWidth: l.w,
+                // left-aligned with the word, just above the tallest letter ("l")
+                label: { x: r.left - s.left, y: A.l.y + l.off - l.h / 2 - f * 0.2 },
             };
         }
         // ---------- drawing ----------
@@ -167,6 +191,11 @@ export function playLogoIntro(container, options = {}) {
                 place(glyphs[id], fr.glyphs[id]);
             for (const id of DEV)
                 place(wraps[id], fr.wraps[id]);
+            if (label) {
+                label.style.transform = `translate(${layout.label.x}px, ${layout.label.y + fr.label.dy}px) translateY(-100%)`;
+                label.style.opacity = String(fr.label.opacity);
+                label.style.filter = fr.label.blur > 0.05 ? `blur(${fr.label.blur}px)` : "none";
+            }
             const ring = fr.ring;
             svg.setAttribute("viewBox", `${-ring.box / 2} ${-ring.box / 2} ${ring.box} ${ring.box}`);
             svg.style.width = svg.style.height = `${ring.box}px`;
