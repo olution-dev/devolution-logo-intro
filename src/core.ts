@@ -35,10 +35,10 @@ export const CHARS: Record<TokenId, string> = {
 
 export const isBold = (id: TokenId) => (DEV as readonly TokenId[]).includes(id);
 
-// The standard arrow (DEVOLUTION-LOGO-ARROW.svg): a 275° clockwise arc starting
+// The standard arrow (DEVOLUTION-LOGO-ARROW.svg): a 287.1° clockwise arc starting
 // bottom-left, stroke 8 on an 88 outer diameter.
-export const ARC_START = 135;
-export const ARC = 275;
+export const ARC_START = 122.9;
+export const ARC = 287.1;
 const STROKE_RATIO = 8 / 88;
 
 export type Timing = { intro: number; hold: number; morph: number; rest: number; fade: number };

@@ -10,8 +10,8 @@ export declare const DEV: readonly ["d", "e", "v"];
 export type DevId = (typeof DEV)[number];
 export declare const CHARS: Record<TokenId, string>;
 export declare const isBold: (id: TokenId) => boolean;
-export declare const ARC_START = 135;
-export declare const ARC = 275;
+export declare const ARC_START = 122.9;
+export declare const ARC = 287.1;
 export type Timing = {
     intro: number;
     hold: number;

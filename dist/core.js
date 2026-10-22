@@ -24,10 +24,10 @@ export const CHARS = {
     dot: ".",
 };
 export const isBold = (id) => DEV.includes(id);
-// The standard arrow (DEVOLUTION-LOGO-ARROW.svg): a 275° clockwise arc starting
+// The standard arrow (DEVOLUTION-LOGO-ARROW.svg): a 287.1° clockwise arc starting
 // bottom-left, stroke 8 on an 88 outer diameter.
-export const ARC_START = 135;
-export const ARC = 275;
+export const ARC_START = 122.9;
+export const ARC = 287.1;
 const STROKE_RATIO = 8 / 88;
 export const DEFAULT_TIMING = { intro: 1200, hold: 400, morph: 2000, rest: 600, fade: 700 };
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
