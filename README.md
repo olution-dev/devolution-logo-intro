@@ -8,7 +8,7 @@ The Devolution logo intro: "dev(arrow)lution." turns into "olution.dev".
 ## Install
 
 ```sh
-bun add github:hmmmzaDev/devolution-logo-intro#v1.0.0
+bun add github:olution-dev/devolution-logo-intro#v1.0.1
 ```
 
 To update, bump the tag.
